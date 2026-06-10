@@ -753,6 +753,8 @@
 
         let allVideos = [];
         let filteredVideos = [];
+        let currentChannelName = "유튜브_채널";
+
 
         async function startScraping() {
             const urlInput = document.getElementById('channel-url');
@@ -794,6 +796,7 @@
 
                 allVideos = data.videos;
                 filteredVideos = [...allVideos];
+                currentChannelName = data.channel_name || "유튜브_채널";
 
                 // Render Results
                 displayStats(data);
@@ -965,7 +968,8 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             
-            const filename = `youtube_videos_${new Date().toISOString().slice(0,10)}.csv`;
+            const safeChannelName = currentChannelName.replace(/[\\/:*?"<>|]/g, "_");
+            const filename = `${safeChannelName} 링크 및 재생시간.csv`;
             link.setAttribute("href", url);
             link.setAttribute("download", filename);
             document.body.appendChild(link);
@@ -981,7 +985,8 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
 
-            const filename = `youtube_videos_${new Date().toISOString().slice(0,10)}.json`;
+            const safeChannelName = currentChannelName.replace(/[\\/:*?"<>|]/g, "_");
+            const filename = `${safeChannelName} 링크 및 재생시간.json`;
             link.setAttribute("href", url);
             link.setAttribute("download", filename);
             document.body.appendChild(link);
