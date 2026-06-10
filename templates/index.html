@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>유튜브 채널 비디오 스크래퍼</title>
+    <!-- Google Fonts: Outfit for heading, Inter for content -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #161d30;
+            --glass-bg: rgba(22, 29, 48, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-red: #ff2a5f;
+            --accent-purple: #8b5cf6;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --success: #10b981;
+            --shadow-glow: 0 0 20px rgba(255, 42, 95, 0.15);
+            --font-outfit: 'Outfit', 'Inter', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-purple) var(--bg-secondary);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            border: 2px solid var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-purple);
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, rgba(255, 42, 95, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 90%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+            color: var(--text-primary);
+            font-family: var(--font-inter);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        /* Header Styles */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-family: var(--font-outfit);
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-red) 70%, var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 400;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main Form & Glass Container */
+        .glass-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            margin-bottom: 30px;
+            transition: border-color 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .scrape-form {
+            display: flex;
+            gap: 15px;
+            position: relative;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+
+        .url-input {
+            width: 100%;
+            background: rgba(11, 15, 25, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px 16px 16px 48px;
+            color: var(--text-primary);
+            font-family: var(--font-inter);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .url-input:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+            background: rgba(11, 15, 25, 0.8);
+        }
+
+        .url-input:focus + .input-icon {
+            color: var(--accent-purple);
+        }
+
+        .scrape-btn {
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 28px;
+            font-family: var(--font-outfit);
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .scrape-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 0 25px rgba(255, 42, 95, 0.3);
+        }
+
+        .scrape-btn:active {
+            transform: translateY(0);
+        }
+
+        .scrape-btn:disabled {
+            background: var(--text-muted);
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+            filter: none;
+        }
+
+        /* Status & Loading State */
+        .status-container {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .status-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loading-progress {
+            display: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .loading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-purple));
+            border-radius: 2px;
+            animation: loadingProgress 3s infinite linear;
+        }
+
+        @keyframes loadingProgress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-icon-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-card:nth-child(1) .stat-icon-wrapper {
+            color: var(--accent-red);
+            background: rgba(255, 42, 95, 0.1);
+        }
+
+        .stat-card:nth-child(2) .stat-icon-wrapper {
+            color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .stat-card:nth-child(3) .stat-icon-wrapper {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .stat-info-text h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .stat-info-text p {
+            font-family: var(--font-outfit);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Results Controls */
+        .results-header {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .channel-info-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .channel-name-tag {
+            font-family: var(--font-outfit);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .channel-name-tag:hover {
+            color: var(--accent-red);
+        }
+
+        .controls-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            min-width: 250px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px 10px 10px 36px;
+            color: var(--text-primary);
+            outline: none;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .select-sort {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            outline: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .select-sort:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .export-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-secondary);
+        }
+
+        /* Table Design */
+        .table-container {
+            display: none;
+            overflow-x: auto;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .videos-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .videos-table th {
+            background: rgba(11, 15, 25, 0.5);
+            padding: 16px 20px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .videos-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            vertical-align: middle;
+            transition: background-color 0.2s;
+        }
+
+        .videos-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .videos-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .col-index {
+            width: 60px;
+            color: var(--text-muted);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .col-thumbnail {
+            width: 130px;
+        }
+
+        .video-thumbnail-wrapper {
+            position: relative;
+            width: 100px;
+            aspect-ratio: 16 / 9;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: var(--bg-primary);
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .col-title {
+            max-width: 450px;
+        }
+
+        .video-title {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            transition: color 0.2s;
+        }
+
+        .video-title:hover {
+            color: var(--accent-red);
+        }
+
+        .col-duration {
+            font-family: var(--font-outfit);
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: right;
+            width: 100px;
+        }
+
+        .col-link {
+            width: 180px;
+            text-align: right;
+        }
+
+        .video-link-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .link-text {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .link-text:hover {
+            color: var(--accent-purple);
+        }
+
+        .btn-icon-only {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .btn-icon-only:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 50px;
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: var(--accent-purple);
+        }
+
+        /* Media Queries */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.2rem;
+            }
+            .scrape-form {
+                flex-direction: column;
+            }
+            .scrape-btn {
+                padding: 16px;
+                justify-content: center;
+            }
+            .results-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-wrapper, .select-sort, .export-btn {
+                width: 100%;
+            }
+            .videos-table th:nth-child(2), .videos-table td:nth-child(2) {
+                display: none; /* Hide thumbnail on mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1><i data-lucide="youtube" style="width: 38px; height: 38px; color: var(--accent-red);"></i> YouTube Scraper</h1>
+            <p>유튜브 채널 URL을 입력하면 동영상의 링크와 재생시간을 간편하게 추출하고 CSV/JSON으로 내보낼 수 있습니다.</p>
+        </header>
+
+        <!-- Main Form Panel -->
+        <div class="glass-panel">
+            <form id="scrape-form" class="scrape-form" onsubmit="event.preventDefault(); startScraping();">
+                <div class="input-wrapper">
+                    <i data-lucide="link" class="input-icon"></i>
+                    <input 
+                        type="url" 
+                        id="channel-url" 
+                        class="url-input" 
+                        placeholder="https://www.youtube.com/@mental_TC/videos" 
+                        required
+                    >
+                </div>
+                <button type="submit" id="submit-btn" class="scrape-btn">
+                    <span>추출하기</span>
+                    <i data-lucide="arrow-right"></i>
+                </button>
+            </form>
+
+            <!-- Status Indicator -->
+            <div id="status-message" class="status-container"></div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="loading-progress">
+                <div class="loading-bar"></div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div id="stats-grid" class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon-wrapper">
+                    <i data-lucide="video" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="stat-info-text">
+                    <h3>총 동영상 수</h3>
+                    <p id="stat-total-count">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-wrapper">
+                    <i data-lucide="clock" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="stat-info-text">
+                    <h3>총 재생 시간</h3>
+                    <p id="stat-total-duration">00:00:00</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-wrapper">
+                    <i data-lucide="trending-up" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="stat-info-text">
+                    <h3>평균 재생 시간</h3>
+                    <p id="stat-avg-duration">00:00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Controls -->
+        <div id="results-header" class="results-header">
+            <div class="channel-info-display">
+                <a href="#" id="channel-name-link" class="channel-name-tag" target="_blank">
+                    <span id="channel-title-display">채널명</span>
+                    <i data-lucide="external-link" style="width: 16px; height: 16px;"></i>
+                </a>
+            </div>
+            <div class="controls-actions">
+                <div class="search-wrapper">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="search-input" class="search-input" placeholder="제목 검색...">
+                </div>
+                <select id="sort-select" class="select-sort" onchange="applyFilters()">
+                    <option value="index-asc">기본 순서 (오름차순)</option>
+                    <option value="index-desc">기본 순서 (내림차순)</option>
+                    <option value="duration-desc">재생시간 긴 순</option>
+                    <option value="duration-asc">재생시간 짧은 순</option>
+                    <option value="title-asc">제목 사전순 (A-Z)</option>
+                </select>
+                <button onclick="exportCSV()" class="export-btn">
+                    <i data-lucide="download"></i>
+                    <span>CSV 내보내기</span>
+                </button>
+                <button onclick="exportJSON()" class="export-btn">
+                    <i data-lucide="file-json"></i>
+                    <span>JSON 내보내기</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div id="table-container" class="table-container">
+            <table class="videos-table">
+                <thead>
+                    <tr>
+                        <th class="col-index">번호</th>
+                        <th class="col-thumbnail">미리보기</th>
+                        <th class="col-title">동영상 제목</th>
+                        <th class="col-duration" style="text-align: right;">재생시간</th>
+                        <th class="col-link" style="text-align: right;">링크</th>
+                    </tr>
+                </thead>
+                <tbody id="videos-tbody">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state">
+            <i data-lucide="alert-circle"></i>
+            <p>검색 결과와 일치하는 동영상이 없습니다.</p>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 YouTube Channel Scraper. Built with FastAPI & yt-dlp.</p>
+    </footer>
+
+    <script>
+        // Initialize icons
+        lucide.createIcons();
+
+        let allVideos = [];
+        let filteredVideos = [];
+
+        async function startScraping() {
+            const urlInput = document.getElementById('channel-url');
+            const submitBtn = document.getElementById('submit-btn');
+            const statusDiv = document.getElementById('status-message');
+            const progressContainer = document.getElementById('progress-container');
+            
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            // UI Reset
+            submitBtn.disabled = true;
+            statusDiv.className = 'status-container status-info';
+            statusDiv.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 18px; height: 18px;"></i> &nbsp; 채널 정보를 가져오는 중입니다. 잠시만 기다려 주세요 (채널 크기에 따라 최대 수십 초 소요될 수 있습니다)...`;
+            statusDiv.style.display = 'flex';
+            progressContainer.style.display = 'block';
+            lucide.createIcons();
+
+            // Hide previous results
+            document.getElementById('stats-grid').style.display = 'none';
+            document.getElementById('results-header').style.display = 'none';
+            document.getElementById('table-container').style.display = 'none';
+            document.getElementById('empty-state').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || '채널 정보를 가져오는 데 실패했습니다.');
+                }
+
+                allVideos = data.videos;
+                filteredVideos = [...allVideos];
+
+                // Render Results
+                displayStats(data);
+                displayChannelHeader(data);
+                applyFilters();
+
+                // Show Results
+                statusDiv.style.display = 'none';
+                document.getElementById('stats-grid').style.display = 'grid';
+                document.getElementById('results-header').style.display = 'flex';
+                document.getElementById('table-container').style.display = 'block';
+
+            } catch (error) {
+                statusDiv.className = 'status-container status-error';
+                statusDiv.innerHTML = `<i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i> &nbsp; 오류 발생: ${error.message}`;
+                lucide.createIcons();
+            } finally {
+                submitBtn.disabled = false;
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        function displayChannelHeader(data) {
+            const titleLink = document.getElementById('channel-name-link');
+            const titleSpan = document.getElementById('channel-title-display');
+            
+            titleSpan.textContent = data.channel_name;
+            titleLink.href = data.channel_url;
+        }
+
+        function displayStats(data) {
+            const totalCount = data.total_count;
+            let totalSeconds = 0;
+            let validDurationCount = 0;
+
+            allVideos.forEach(v => {
+                if (v.duration_seconds) {
+                    totalSeconds += v.duration_seconds;
+                    validDurationCount++;
+                }
+            });
+
+            const avgSeconds = validDurationCount > 0 ? Math.round(totalSeconds / validDurationCount) : 0;
+
+            document.getElementById('stat-total-count').textContent = totalCount.toLocaleString() + '개';
+            document.getElementById('stat-total-duration').textContent = formatSecondsToTime(totalSeconds);
+            document.getElementById('stat-avg-duration').textContent = formatSecondsToTime(avgSeconds);
+        }
+
+        function formatSecondsToTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) {
+                return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+            return `${m}:${String(s).padStart(2, '0')}`;
+        }
+
+        // Live Search Input Listener
+        document.getElementById('search-input').addEventListener('input', () => {
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+            const sortBy = document.getElementById('sort-select').value;
+
+            // 1. Search Filter
+            filteredVideos = allVideos.filter(v => v.title.toLowerCase().includes(searchQuery));
+
+            // 2. Sort
+            if (sortBy === 'index-asc') {
+                filteredVideos.sort((a, b) => a.index - b.index);
+            } else if (sortBy === 'index-desc') {
+                filteredVideos.sort((a, b) => b.index - a.index);
+            } else if (sortBy === 'duration-desc') {
+                filteredVideos.sort((a, b) => (b.duration_seconds || 0) - (a.duration_seconds || 0));
+            } else if (sortBy === 'duration-asc') {
+                filteredVideos.sort((a, b) => (a.duration_seconds || 0) - (b.duration_seconds || 0));
+            } else if (sortBy === 'title-asc') {
+                filteredVideos.sort((a, b) => a.title.localeCompare(b.title));
+            }
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('videos-tbody');
+            const tableContainer = document.getElementById('table-container');
+            const emptyState = document.getElementById('empty-state');
+
+            tbody.innerHTML = '';
+
+            if (filteredVideos.length === 0) {
+                tableContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            tableContainer.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            filteredVideos.forEach((v, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="col-index">${v.index}</td>
+                    <td class="col-thumbnail">
+                        <div class="video-thumbnail-wrapper">
+                            <img src="${v.thumbnail}" class="video-thumbnail" alt="thumbnail" onerror="this.src='https://i.ytimg.com/vi/${v.id}/mqdefault.jpg'">
+                        </div>
+                    </td>
+                    <td class="col-title">
+                        <a href="${v.url}" target="_blank" class="video-title" title="${v.title}">
+                            ${v.title}
+                        </a>
+                    </td>
+                    <td class="col-duration" style="text-align: right;">
+                        ${v.duration_string}
+                    </td>
+                    <td class="col-link" style="text-align: right;">
+                        <div class="video-link-container">
+                            <a href="${v.url}" target="_blank" class="link-text">${v.url}</a>
+                            <button onclick="copyToClipboard('${v.url}', this)" class="btn-icon-only" title="링크 복사">
+                                <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        function copyToClipboard(text, buttonEl) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = buttonEl.querySelector('i');
+                const originalName = icon.getAttribute('data-lucide');
+                
+                // Change icon to checkmark
+                icon.setAttribute('data-lucide', 'check');
+                buttonEl.style.color = 'var(--success)';
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    icon.setAttribute('data-lucide', originalName);
+                    buttonEl.style.color = '';
+                    lucide.createIcons();
+                }, 2000);
+            }).catch(err => {
+                console.error('클립보드 복사 실패: ', err);
+            });
+        }
+
+        function exportCSV() {
+            if (filteredVideos.length === 0) return;
+
+            let csvContent = "\uFEFF"; // UTF-8 BOM
+            csvContent += "번호,제목,재생시간,유튜브 링크\n";
+
+            filteredVideos.forEach(v => {
+                // Escape double quotes inside the title
+                const escapedTitle = v.title.replace(/"/g, '""');
+                csvContent += `${v.index},"${escapedTitle}","${v.duration_string}","${v.url}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const filename = `youtube_videos_${new Date().toISOString().slice(0,10)}.csv`;
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportJSON() {
+            if (filteredVideos.length === 0) return;
+
+            const jsonString = JSON.stringify(filteredVideos, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            const filename = `youtube_videos_${new Date().toISOString().slice(0,10)}.json`;
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
