@@ -955,43 +955,49 @@
         function exportCSV() {
             if (filteredVideos.length === 0) return;
 
-            let csvContent = "\uFEFF"; // UTF-8 BOM
-            csvContent += "번호,제목,재생시간,유튜브 링크\n";
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/export-csv';
 
-            filteredVideos.forEach(v => {
-                // Escape double quotes inside the title
-                const escapedTitle = v.title.replace(/"/g, '""');
-                csvContent += `${v.index},"${escapedTitle}","${v.duration_string}","${v.url}"\n`;
-            });
+            const inputData = document.createElement('input');
+            inputData.type = 'hidden';
+            inputData.name = 'videos';
+            inputData.value = JSON.stringify(filteredVideos);
+            form.appendChild(inputData);
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            
-            const safeChannelName = currentChannelName.replace(/[\\/:*?"<>|]/g, "_");
-            const filename = `${safeChannelName} 링크 및 재생시간.csv`;
-            link.setAttribute("href", url);
-            link.setAttribute("download", filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const inputName = document.createElement('input');
+            inputName.type = 'hidden';
+            inputName.name = 'channel_name';
+            inputName.value = currentChannelName;
+            form.appendChild(inputName);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
         }
 
         function exportJSON() {
             if (filteredVideos.length === 0) return;
 
-            const jsonString = JSON.stringify(filteredVideos, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/export-json';
 
-            const safeChannelName = currentChannelName.replace(/[\\/:*?"<>|]/g, "_");
-            const filename = `${safeChannelName} 링크 및 재생시간.json`;
-            link.setAttribute("href", url);
-            link.setAttribute("download", filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const inputData = document.createElement('input');
+            inputData.type = 'hidden';
+            inputData.name = 'videos';
+            inputData.value = JSON.stringify(filteredVideos);
+            form.appendChild(inputData);
+
+            const inputName = document.createElement('input');
+            inputName.type = 'hidden';
+            inputName.name = 'channel_name';
+            inputName.value = currentChannelName;
+            form.appendChild(inputName);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
         }
     </script>
 </body>

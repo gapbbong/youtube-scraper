@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, Form
+from fastapi.responses import HTMLResponse, StreamingResponse
+import io
+import urllib.parse
+import json
 from pydantic import BaseModel
 import yt_dlp
 import os
@@ -58,8 +61,13 @@ async def scrape_channel(request: ScrapeRequest):
             if not info:
                 raise HTTPException(status_code=404, detail="No information could be retrieved from this URL")
             
-            # Channel title
-            channel_name = info.get('title', 'Unknown Channel')
+            # Channel title - prefer channel/uploader over playlist title
+            channel_name = (
+                info.get('channel')
+                or info.get('uploader')
+                or info.get('title')
+                or 'Unknown Channel'
+            )
             channel_url = info.get('webpage_url', url)
             
             videos = []
@@ -114,6 +122,63 @@ async def scrape_channel(request: ScrapeRequest):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scraping channel: {str(e)}")
+
+@app.post("/api/export-csv")
+async def export_csv(videos: str = Form(...), channel_name: str = Form(...)):
+    try:
+        video_list = json.loads(videos)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid videos data")
+        
+    output = io.StringIO()
+    output.write("\uFEFF") # UTF-8 BOM
+    output.write("채널명,영상 링크,재생시간\n")
+    
+    for v in video_list:
+        escaped_channel = channel_name.replace('"', '""')
+        video_url = v.get('url', '')
+        duration = v.get('duration_string', 'N/A')
+        output.write(f"\"{escaped_channel}\",\"{video_url}\",\"{duration}\"\n")
+        
+    csv_data = output.getvalue()
+    output.close()
+    
+    safe_channel_name = "".join(c for c in channel_name if c not in '\\/:*?"<>|')
+    filename = f"{safe_channel_name} 영상 링크와 재생시간.csv"
+    encoded_filename = urllib.parse.quote(filename)
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename*=UTF-8\'\'{encoded_filename}'
+    }
+    
+    return StreamingResponse(
+        io.BytesIO(csv_data.encode('utf-8')),
+        media_type='text/csv;charset=utf-8',
+        headers=headers
+    )
+
+@app.post("/api/export-json")
+async def export_json(videos: str = Form(...), channel_name: str = Form(...)):
+    try:
+        video_list = json.loads(videos)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid videos data")
+        
+    json_data = json.dumps(video_list, indent=2, ensure_ascii=False)
+    
+    safe_channel_name = "".join(c for c in channel_name if c not in '\\/:*?"<>|')
+    filename = f"{safe_channel_name} 영상 링크와 재생시간.json"
+    encoded_filename = urllib.parse.quote(filename)
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename*=UTF-8\'\'{encoded_filename}'
+    }
+    
+    return StreamingResponse(
+        io.BytesIO(json_data.encode('utf-8')),
+        media_type='application/json;charset=utf-8',
+        headers=headers
+    )
 
 if __name__ == "__main__":
     import uvicorn
