@@ -636,6 +636,7 @@
                         id="channel-url" 
                         class="url-input" 
                         placeholder="https://www.youtube.com/@mental_TC/videos" 
+                        value="https://www.youtube.com/@mental_TC/videos"
                         required
                     >
                 </div>
@@ -762,8 +763,11 @@
             const statusDiv = document.getElementById('status-message');
             const progressContainer = document.getElementById('progress-container');
             
-            const url = urlInput.value.trim();
-            if (!url) return;
+            let url = urlInput.value.trim();
+            if (!url) {
+                url = urlInput.placeholder;
+                urlInput.value = url;
+            }
 
             // UI Reset
             submitBtn.disabled = true;
